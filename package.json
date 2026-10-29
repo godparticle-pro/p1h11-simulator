@@ -1,0 +1,1 @@
+{"name":"helix-light-laboratory","type":"module","private":true,"scripts":{"test":"node tests.mjs"}}

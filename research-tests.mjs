@@ -1,0 +1,20 @@
+import {solve,build,complexH,beam,eigen,graph,radiation,geometryScan,compare,rfField} from './dist/research-engine.js';
+import fs from 'node:fs';
+let tests=[];function check(name,value,tolerance){if(!Number.isFinite(value)||value>tolerance)throw Error(name+' '+value);tests.push({name,value,tolerance,passed:true});}
+const cases=[{}, {pol:'plus'}, {pol:'minus',ell:-1,offset:.7}, {assembly:'bundle',pol:'plus'}, {assembly:'network',pol:'y'}, {assembly:'monomer',pol:'y'}, {assembly:'dimer',pol:'y'}, {j:0}, {drive:0}, {twist:25,j:.03,pol:'plus',gamma:0}];let runs=cases.map(p=>solve(p));
+let trace=0,herm=0;for(let r of runs){let d=r.m.d,L=d*d;for(let f of r.frames){let tr=0;for(let i=0;i<d;i++)tr+=f.rho[i*d+i];trace=Math.max(trace,Math.abs(tr-1));for(let i=0;i<d;i++)for(let j=0;j<d;j++)herm=Math.max(herm,Math.abs(f.rho[i*d+j]-f.rho[j*d+i]),Math.abs(f.rho[L+i*d+j]+f.rho[L+j*d+i]));}}
+check('Trace preservation across 10 configurations',trace,1e-10);check('Hermiticity across 10 configurations',herm,1e-10);
+let extremeHalf=solve({...cases[9],dt:runs[9].m.p.dt/2});check('Strong-coupling boundary half-step convergence',Math.max(...extremeHalf.frames.flatMap((f,i)=>f.rho.map((v,k)=>Math.abs(v-runs[9].frames[i].rho[k])))),2e-6);
+let half=solve({...cases[2],dt:runs[2].m.p.dt/2});check('Complex vortex drive half-step convergence',Math.max(...half.frames.flatMap((f,i)=>f.rho.map((v,k)=>Math.abs(v-runs[2].frames[i].rho[k])))),2e-6);
+check('Zero drive leaves the ground state',Math.max(...runs[8].frames.map(f=>Math.abs(f.excited))),1e-12);
+let m=build({pol:'plus',ell:1,offset:.7}),[hr,hi]=complexH(m,80),d=m.d;check('Complex driving Hamiltonian is Hermitian',Math.max(...hr.map((v,i)=>Math.abs(v-hr[i%d*d+Math.floor(i/d)])),...hi.map((v,i)=>Math.abs(v+hi[i%d*d+Math.floor(i/d)]))),1e-12);
+let closed=solve({pol:'plus',gamma:0,relax:0});check('Closed-system purity',Math.max(...closed.frames.map(f=>Math.abs(f.purity-1))),2e-6);
+check('Vortex field vanishes on axis',Math.hypot(...beam(0,0,0,{...m.p,ell:1,offset:0})),1e-14);
+let integrals=[];for(let ell of [0,1,2]){let sum=0,dr=.0005;for(let i=0;i<10000;i++){let r=(i+.5)*dr,[re,im]=beam(r,0,0,{...m.p,waist:1,offset:0,ell});sum+=(re*re+im*im)*r*dr;}integrals.push(sum);}check('LG modes equal integrated power',Math.max(...integrals.map(x=>Math.abs(x-.25))),2e-7);
+let tree={p:{n:4},d:5,H:new Float64Array(25)};for(let i=0;i<3;i++)tree.H[(i+1)*5+i+2]=tree.H[(i+2)*5+i+1]=1;check('Tree has zero graph cycles',graph(tree).cycles,0);tree.H[1*5+4]=tree.H[4*5+1]=1;check('Ring has one graph cycle',Math.abs(graph(tree).cycles-1),0);check('Laplacian zero modes match components',Math.abs(graph(tree).spectrum.filter(x=>Math.abs(x)<1e-9).length-graph(tree).components),0);
+let single=build({assembly:'monomer',pol:'y'}),rho=Array(8).fill(0);rho[2]=.5;let f={rho},mu=single.g[0].mu;check('Dipole radiation vanishes along its axis',radiation(single,f,mu).intensity,1e-24);check('No coherence gives zero coherent radiation',radiation(single,{rho:Array(8).fill(0)},[1,0,0]).intensity,0);
+let rf=rfField(23,'rotating',1,.2,.01);check('Rotating RF transverse magnitude',Math.abs(Math.hypot(rf[0],rf[1])-.2),1e-12);
+check('Identical input trajectories have zero distance',Math.max(...compare(runs[0],runs[0]).map(p=>p.distance)),0);
+let A=[[2,1,0],[1,3,.2],[0,.2,1]],ev=eigen(A),err=0;for(let e of ev)for(let i=0;i<3;i++)err=Math.max(err,Math.abs(A[i].reduce((s,x,j)=>s+x*e.vector[j],0)-e.value*e.vector[i]));check('Eigenpair residual',err,1e-10);
+let scan=geometryScan({...m.p,j:0});check('Degenerate quantum-metric points masked',scan.filter(x=>x.metric!==null).length,0);
+fs.writeFileSync('/tmp/p1h11-reference.json',JSON.stringify(runs.map(r=>({p:r.m.p,g:r.m.g,H:Array.from(r.m.H),frames:r.frames}))));fs.writeFileSync('dist/research-validation.json',JSON.stringify({status:'passed',scope:'Ten configurations: helices, bundle, junction motif, monomer, dimer, circular/vortex fields, zero coupling and zero drive. Numerical tests, not experimental validation.',tests},null,2));console.log(tests.map(t=>t.name+': '+t.value).join('\n'));

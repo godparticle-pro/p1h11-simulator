@@ -1,0 +1,61 @@
+{
+  "tests": [
+    {
+      "name": "Trace preservation",
+      "value": 1.3322676295501878e-15,
+      "tolerance": 1e-10,
+      "passed": true
+    },
+    {
+      "name": "Hermiticity",
+      "value": 0,
+      "tolerance": 1e-10,
+      "passed": true
+    },
+    {
+      "name": "Half-step convergence, density matrix",
+      "value": 1.0969659416937283e-08,
+      "tolerance": 2e-06,
+      "passed": true
+    },
+    {
+      "name": "Zero-field ground-state stationarity",
+      "value": 0,
+      "tolerance": 1e-12,
+      "passed": true
+    },
+    {
+      "name": "Closed-system purity error",
+      "value": 7.626291820272968e-10,
+      "tolerance": 2e-06,
+      "passed": true
+    },
+    {
+      "name": "Oscillator-strength sum rule",
+      "value": 0,
+      "tolerance": 1e-10,
+      "passed": true
+    },
+    {
+      "name": "Analytic excited-state decay generator",
+      "value": 0,
+      "tolerance": 1e-14,
+      "passed": true
+    },
+    {
+      "name": "Independent SciPy DOP853 agreement",
+      "value": 1.2797247514585075e-08,
+      "tolerance": 2e-06,
+      "passed": true
+    },
+    {
+      "name": "Density-matrix positivity violation",
+      "value": 0,
+      "tolerance": 2e-08,
+      "passed": true
+    }
+  ],
+  "model": "helix-v0.1",
+  "status": "passed",
+  "scope": "Default preset, dt=0.5 fs; numerical correctness does not establish material validity."
+}
